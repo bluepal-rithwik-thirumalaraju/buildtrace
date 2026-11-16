@@ -77,4 +77,5 @@ class CollectedRun:
     api_documents: list[ApiDocument] = field(default_factory=list)
     log_archive: bytes | None = None
     artifacts: list[dict] = field(default_factory=list)
+    attachments: list[SourceFile] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)

@@ -94,11 +94,12 @@ def create_app(
     def evidence_file(capture_id: str, entry_id: str):
         entry, content = store.read_entry(capture_id, entry_id)
         kind = entry["kind"]
-        mimetype = "application/zip" if kind == "archive" else "application/json" if kind == "api" else "text/plain"
+        binary_archive = kind == "archive" or entry["path"].endswith(".zip")
+        mimetype = "application/zip" if binary_archive else "application/json" if kind == "api" else "text/plain"
         return send_file(
             io.BytesIO(content),
             mimetype=mimetype,
-            as_attachment=kind == "archive" or request.args.get("download") == "1",
+            as_attachment=binary_archive or request.args.get("download") == "1",
             download_name=Path(entry["path"]).name,
             max_age=0,
         )

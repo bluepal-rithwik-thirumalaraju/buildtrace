@@ -2,6 +2,17 @@
 
 ## Purpose
 
+**Primary objective:** compare the no-memory, insights-only, and WikiTrace agents
+under the same model, tasks, and repair budget. Measure successful fixes, memory
+Regression, Gain, independently reviewed unnecessary changes, resolution time,
+and how historical evidence affects decisions.
+
+The current pilot uses `gpt-6-luna` with medium reasoning through OpenAI's
+Responses API. The exact experiment protocol and runnable commands are maintained
+in [docs/EXPERIMENTS.md](docs/EXPERIMENTS.md); upstream reuse is documented in
+[THIRD_PARTY.md](THIRD_PARTY.md). Establishing whether WikiTrace helps is the
+experiment's hypothesis, and conclusions must follow measured outcomes.
+
 BuildTrace is an AI-powered CI/build failure debugging assistant that learns from previous debugging sessions while checking whether historical solutions apply to the current failure.
 
 The core contribution is evidence-backed experience reuse: the agent can follow a short lesson back to the original debugging session, inspect what actually happened, and apply, adapt, or reject the lesson.

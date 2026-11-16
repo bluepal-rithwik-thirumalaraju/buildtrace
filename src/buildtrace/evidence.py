@@ -82,6 +82,9 @@ class EvidenceStore:
             for source in capture.sources:
                 _safe_path(staging / "repository", source.path)
                 write_entry("source", source.path, f"repository/{source.path}", source.content)
+            for attachment in capture.attachments:
+                _safe_path(staging / "artifacts", attachment.path)
+                write_entry("artifact", attachment.path, f"artifacts/{attachment.path}", attachment.content)
             if capture.log_archive is not None:
                 write_entry("archive", "Original attempt log archive", "raw/logs.zip", capture.log_archive)
                 try:

@@ -1,6 +1,6 @@
 # BuildTrace
 
-Evidence-first CI failure investigation, inspired by WikiTrace.
+Compare no-memory, insights-only, and WikiTrace agents on reproducible Python CI failures.
 
 [![BuildTrace CI](https://github.com/bluepal-rithwik-thirumalaraju/buildtrace/actions/workflows/ci.yml/badge.svg)](https://github.com/bluepal-rithwik-thirumalaraju/buildtrace/actions/workflows/ci.yml)
 
@@ -11,7 +11,33 @@ Evidence-first CI failure investigation, inspired by WikiTrace.
 | **This repository: BuildTrace** | Investigate failed runs, preserve evidence, and build the debugging agent |
 | [buildtrace-ci-lab](https://github.com/bluepal-rithwik-thirumalaraju/buildtrace-ci-lab) | Invoice calculator, tests, GitHub Actions, and controlled failure revisions |
 
-## Current milestone: failure viewer and evidence capture
+## Main goal: a fair three-agent comparison
+
+All three modes share the same solver loop, GPT-6 Luna model settings, task
+snapshots, budgets, and verifier. Insights-only and WikiTrace receive identical
+frozen insights; WikiTrace can also inspect their linked source evidence.
+
+The experiment reports:
+
+1. Successful fixes.
+2. Regression on tasks usually solved without memory.
+3. Gain on tasks usually unsolved without memory.
+4. Independently reviewed unnecessary code changes.
+5. Resolution time, including a CI/human-waiting breakdown.
+6. Recorded and independently reviewed evidence-related decision changes.
+
+The official WikiTrace compiler and document renderers are now integrated through
+a CI-session adapter, pinned to an upstream commit. See [attribution](THIRD_PARTY.md),
+the [experiment protocol and commands](docs/EXPERIMENTS.md), and
+[verified model selection](docs/MODEL_SELECTION.md).
+
+Four training and four held-out failure cases are published and archived. The
+shared runner, memory adapter, six-metric reports, and independent CI oracle have
+automated tests. The CI backend also passed an actual operator integration check.
+Live OpenAI agent trials and their performance results await a locally configured
+API key. Operator checks and synthetic test fixtures are not agent results.
+
+## Evidence viewer
 
 Paste a GitHub Actions run URL into the local webpage, or use the CLI, to:
 
@@ -27,8 +53,6 @@ labels the reported head SHA explicitly because the actual checkout can be a
 merge revision. Run-level artifact listings are also labeled separately from
 attempt-specific logs.
 
-The next milestone is agent diagnosis and repair, followed by the linked
-insight/compilation/raw-trajectory memory and the three-mode comparison.
 See the complete [implementation plan](BUILDTRACE_PLAN.md).
 
 ## Quick start
@@ -61,15 +85,26 @@ python -m buildtrace serve
 Open <http://127.0.0.1:8000> and paste a workflow run URL. The server binds to
 localhost by default.
 
+For experiments, create a local `.env` using `.env.example` and configure
+`OPENAI_API_KEY`. Then check the pilot inputs without paid model calls:
+
+```sh
+python -m buildtrace experiment validate --spec experiments/training.json
+```
+
+Follow [EXPERIMENTS.md](docs/EXPERIMENTS.md) to collect no-memory training runs,
+compile frozen memory, run the three modes, review patches, and generate reports.
+
 ### GitHub authentication
 
 BuildTrace uses `GH_TOKEN` or `GITHUB_TOKEN` when set, or an existing
-`gh auth login` sign-in when the GitHub CLI is installed. Authentication is useful
+`gh auth login` sign-in when the GitHub CLI is installed. An explicitly configured
+`BUILDTRACE_GITHUB_ACCOUNT` can reuse Git Credential Manager. Authentication is useful
 for API limits and required for private resources. The viewer needs repository
 contents and Actions read access.
 
-Credentials remain in the process environment or credential provider; they are
-not written into captures or sent to the log storage host on redirects.
+The configured API token is used by the host HTTP client. It is not added to
+capture metadata or forwarded to the log storage host on redirects.
 
 ### Try the first real failure
 
@@ -123,8 +158,10 @@ python -m build
 
 Tests cover attempt-specific ingestion, pagination, download credential handling,
 missing logs, evidence integrity, URL and archive-path handling, and the browser
-and CLI flows. Tests use simulated HTTP responses; the documented lab run is the
-live integration input.
+and CLI flows, plus three-mode access isolation, the actual upstream compiler,
+Responses reasoning continuation, paired metrics, independent review, and trusted
+verification. Unit tests use simulated model/HTTP responses and explicitly mark
+synthetic comparison reports. The lab provides live CI integration inputs.
 
 The [scenario catalog](docs/LAB_SCENARIOS.md) is operator-only evaluation material
 and must stay outside the target-project context supplied to a debugging agent.

@@ -34,7 +34,7 @@ class GitHubError(RuntimeError):
 
 
 def resolve_github_token() -> str | None:
-    """Use an environment token, or the user's existing GitHub CLI sign-in."""
+    """Use an environment token, gh sign-in, or an explicitly selected Git credential account."""
     for name in ("GH_TOKEN", "GITHUB_TOKEN"):
         if token := os.environ.get(name, "").strip():
             return token
@@ -49,6 +49,21 @@ def resolve_github_token() -> str | None:
             )
             if result.returncode == 0:
                 return result.stdout.strip() or None
+        except (OSError, subprocess.TimeoutExpired):
+            pass
+    account = os.environ.get("BUILDTRACE_GITHUB_ACCOUNT", "")
+    git = shutil.which("git")
+    if account and git and re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9-]{0,38}", account):
+        try:
+            result = subprocess.run(
+                [git, "credential", "fill"],
+                input=f"protocol=https\nhost=github.com\nusername={account}\n\n",
+                capture_output=True, text=True, timeout=10,
+                env=os.environ | {"GIT_TERMINAL_PROMPT": "0", "GCM_INTERACTIVE": "never"},
+            )
+            if result.returncode == 0:
+                fields = dict(line.split("=", 1) for line in result.stdout.splitlines() if "=" in line)
+                return fields.get("password") or None
         except (OSError, subprocess.TimeoutExpired):
             pass
     return None
