@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}BuildTrace{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+    <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="{{ url_for('index') }}"><span class="brand-mark">B<span>↗</span></span>BuildTrace</a>
+      <span class="header-note"><span class="live-dot"></span>Evidence-first CI debugging</span>
+      <span class="milestone">01 / Evidence capture</span>
+    </header>
+    <main>{% block content %}{% endblock %}</main>
+    <footer>BuildTrace <span>Every finding needs a path back to its evidence.</span></footer>
+  </body>
+</html>
