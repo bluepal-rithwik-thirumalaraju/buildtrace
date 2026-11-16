@@ -62,6 +62,34 @@ def test_configuration_fix_cannot_replace_checks_with_echo_or_disable_tests():
         validate_workflow_environment_change(before, valid.replace("INVOICE_CURRENCY: USD", 'INVOICE_CURRENCY: USD\n      PYTEST_ADDOPTS: "--deselect=test_total"'), ["INVOICE_CURRENCY"])
 
 
+def test_directory_response_is_a_recoverable_tool_error():
+    backend = GitHubTrialBackend.__new__(GitHubTrialBackend)
+    backend.task = experiment_spec().tasks[0]
+    backend.base, backend.headers = "/repos/example/invoice", {}
+    backend.originals, backend.overlay = {}, {}
+    backend.client = httpx.Client(transport=httpx.MockTransport(
+        lambda request: httpx.Response(200, json=[{"name": "constraints.txt", "type": "file"}])
+    ))
+    with pytest.raises(ValueError, match="directory.*list_current_files"):
+        backend.read_file("ci")
+    assert "ci" not in backend.originals
+    backend.client.close()
+
+
+def test_source_network_failure_is_recordable_infrastructure_error():
+    def failure(request):
+        raise httpx.ReadTimeout("simulated network interruption", request=request)
+
+    backend = GitHubTrialBackend.__new__(GitHubTrialBackend)
+    backend.task = experiment_spec().tasks[0]
+    backend.base, backend.headers = "/repos/example/invoice", {}
+    backend.originals, backend.overlay = {}, {}
+    backend.client = httpx.Client(transport=httpx.MockTransport(failure))
+    with pytest.raises(BackendError, match="fixed task snapshot"):
+        backend.read_file("src/invoice_lab/calculator.py")
+    backend.client.close()
+
+
 def test_oracle_dispatch_does_not_reuse_an_old_or_unrelated_run(tmp_path, collected_run, monkeypatch):
     backend = GitHubTrialBackend.__new__(GitHubTrialBackend)
     backend.task = experiment_spec().tasks[0]

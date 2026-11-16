@@ -228,18 +228,25 @@ class GitHubTrialBackend:
 
     def _read_base(self, path):
         if path not in self.originals:
-            result = self.client.get(API_ROOT + self.base + "/contents/" + quote(path, safe="/") + f"?ref={self.task.base_sha}", headers=self.headers)
-            if result.status_code == 404:
-                self.originals[path] = None
-            else:
-                try:
-                    GitHubActionsClient._check_status(result)
-                    body = result.json()
-                    if body.get("type") != "file" or body.get("encoding") != "base64" or body.get("size", 0) > 100000:
-                        raise ValueError("Unsupported source file")
-                    self.originals[path] = base64.b64decode(body["content"]).decode("utf-8")
-                except (GitHubError, ValueError, KeyError) as exc:
-                    raise BackendError("Could not read a file from the fixed task snapshot") from exc
+            try:
+                result = self.client.get(API_ROOT + self.base + "/contents/" + quote(path, safe="/") + f"?ref={self.task.base_sha}", headers=self.headers)
+                if result.status_code == 404:
+                    self.originals[path] = None
+                    return None
+                GitHubActionsClient._check_status(result)
+                body = result.json()
+            except (httpx.RequestError, GitHubError, ValueError) as exc:
+                raise BackendError("Could not read a file from the fixed task snapshot") from exc
+            if isinstance(body, list):
+                raise ValueError("This path is a directory. Use list_current_files and read an exact file path.")
+            if not isinstance(body, dict):
+                raise BackendError("GitHub returned an invalid source-file response")
+            try:
+                if body.get("type") != "file" or body.get("encoding") != "base64" or body.get("size", 0) > 100000:
+                    raise ValueError("Unsupported source file")
+                self.originals[path] = base64.b64decode(body["content"]).decode("utf-8")
+            except (ValueError, KeyError) as exc:
+                raise BackendError("Could not read a file from the fixed task snapshot") from exc
         return self.originals[path]
 
     def read_file(self, path):
@@ -252,6 +259,8 @@ class GitHubTrialBackend:
         return content
 
     def read_log(self, entry_id, offset=0, limit=12000):
+        if not isinstance(entry_id, str):
+            raise ValueError("Choose a string entry ID from the current-log catalog")
         if type(offset) is not int or offset < 0 or type(limit) is not int or not 1 <= limit <= 12000:
             raise ValueError("Invalid current-log range")
         capture_id, separator, file_id = entry_id.partition("/")
